@@ -1,0 +1,92 @@
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use("TkAgg")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+
+import numpy as np
+
+from tkinter import *
+import tkinter as Tk
+from tkinter import messagebox
+
+from LightPipes import *
+import math
+
+root = Tk.Tk()
+
+labda = 50 * nm; # длина волны света, от нее будут зависеть радиусы темных и светлых колец
+size = 5 * mm; # размер области моделирования
+N = 300 # 300 на 300 пикселей
+
+R = 150 * cm # радиус кривизны линзы
+
+nfilm = 1.0 # показатель преломления пленки ( для воздуха 1)
+
+LABDA = DoubleVar()
+
+LABDA.set(labda / nm)
+
+
+fig = plt.figure(figsize=(8, 8))
+ax1 = fig.add_subplot(111)
+
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas._tkcanvas.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=1)
+v = StringVar()
+
+d = np.ndarray((N, N))
+X = np.arange(-size / 2, size / 2, size / N)
+Y = X
+
+for i in range(0, N - 1):
+    for j in range(0, N - 1):
+        r2 = X[i] * X[i] + Y[j] * Y[j]
+        d[i][j] = r2 / 2 / R  # толщина пленки в каждой точке сетки
+
+
+def TheExample(kostil):
+    global I
+    labda = LABDA.get() * nm
+
+    F = Begin(size, labda, N);
+    F1 = F
+    Phi = Phase(F);
+    k = 2 * math.pi / labda;
+    p2 = 2 * nfilm * k;
+
+    for i in range(1, N):
+        for j in range(1, N):
+            Phi[i][j] = p2 * d[i][j] + math.pi
+
+
+    F = SubPhase(Phi, F);
+    F = BeamMix(F1, F);
+    I = Intensity(1, F);
+
+    ax1.clear()
+    ax1.imshow(I, cmap='magma')
+    ax1.axis('off');
+    ax1.axis('equal');
+    str = 'Intensity distribution'
+    ax1.set_title(str)
+
+    canvas.draw()
+
+Scale(root,
+      takefocus=1,
+      orient='horizontal',
+      label='wavelength [nm]',
+      length=200, from_=300.0, to=1000.0,
+      resolution=0.1,
+      variable=LABDA,
+      cursor="hand2",
+      command=TheExample).pack()
+
+
+Label(root, textvariable=v).pack(pady=50)
+
+
+TheExample(0)
+root.mainloop()
+root.destroy()
