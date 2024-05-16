@@ -1,0 +1,115 @@
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use("TkAgg")
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import numpy as np
+from tkinter import *
+import tkinter as Tk
+from LightPipes import *
+import math
+
+root = Tk.Tk()
+
+labda_central = 600 * nm  # центральная длина волны света
+delta_lambda = 20 * nm    # ширина спектра
+size = 5 * mm             # размер области моделирования
+N = 300                   # 300 на 300 пикселей
+
+R = 150 * cm              # радиус кривизны линзы
+nfilm = 1.0               # показатель преломления пленки (для воздуха 1)
+
+LABDA_CENTRAL = DoubleVar()
+DELTA_LAMBDA = DoubleVar()
+
+LABDA_CENTRAL.set(labda_central / nm)
+DELTA_LAMBDA.set(delta_lambda / nm)
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+
+canvas = FigureCanvasTkAgg(fig, master=root)
+canvas._tkcanvas.pack(side=Tk.LEFT, fill=Tk.BOTH, expand=1)
+v = StringVar()
+
+d = np.ndarray((N, N))
+X = np.arange(-size / 2, size / 2, size / N)
+Y = X
+
+for i in range(0, N - 1):
+    for j in range(0, N - 1):
+        r2 = X[i] * X[i] + Y[j] * Y[j]
+        d[i][j] = r2 / 2 / R  # толщина пленки в каждой точке сетки
+
+def calculate_intensity(labda):
+    F = Begin(size, labda, N)
+    F1 = F
+    Phi = Phase(F)
+    k = 2 * math.pi / labda
+    p2 = 2 * nfilm * k
+
+    for i in range(1, N):
+        for j in range(1, N):
+            Phi[i][j] = p2 * d[i][j] + math.pi
+
+    F = SubPhase(Phi, F)
+    F = BeamMix(F1, F)
+    I = Intensity(1, F)
+    return I
+
+def radial_intensity(I):
+    center = N // 2
+    radial_intensity = np.zeros(center)
+    for r in range(center):
+        radial_intensity[r] = I[center, center + r]
+    return radial_intensity
+
+def TheExample(kostil):
+    global I
+    labda_central = LABDA_CENTRAL.get() * nm
+    delta_lambda = DELTA_LAMBDA.get() * nm
+    wavelengths = np.linspace(labda_central - delta_lambda / 2, labda_central + delta_lambda / 2, 10)
+
+    I_total = np.zeros((N, N))
+    for labda in wavelengths:
+        I_total += calculate_intensity(labda)
+    I = I_total / len(wavelengths)
+    radial_intensity_quasi = radial_intensity(I)
+
+    ax1.clear()
+    ax1.imshow(I, cmap='magma')
+    ax1.axis('off')
+    ax1.axis('equal')
+    ax1.set_title('Quasi-Monochromatic Intensity Distribution')
+
+    ax2.clear()
+    ax2.plot(radial_intensity_quasi)
+    ax2.set_title('Radial Intensity (Quasi-Monochromatic)')
+    ax2.set_xlabel('Radial Coordinate')
+    ax2.set_ylabel('Intensity')
+
+    canvas.draw()
+
+Scale(root,
+      takefocus=1,
+      orient='horizontal',
+      label='central wavelength [nm]',
+      length=200, from_=300.0, to=1000.0,
+      resolution=0.1,
+      variable=LABDA_CENTRAL,
+      cursor="hand2",
+      command=TheExample).pack()
+
+Scale(root,
+      takefocus=1,
+      orient='horizontal',
+      label='spectrum width [nm]',
+      length=200, from_=0.0, to=100.0,
+      resolution=0.1,
+      variable=DELTA_LAMBDA,
+      cursor="hand2",
+      command=TheExample).pack()
+
+Label(root, textvariable=v).pack(pady=50)
+
+TheExample(0)
+root.mainloop()
+root.destroy()
