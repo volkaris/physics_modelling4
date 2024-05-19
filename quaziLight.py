@@ -66,7 +66,7 @@ def radial_intensity(I):
 def get_colormap(labda):
     wavelength = labda / nm
     if wavelength < 380 or wavelength > 780:
-        raise ValueError("Wavelength out of visible range")
+        raise ValueError("Некорректная длинна волны")
     color = wavelength_to_rgb(wavelength)
     return mcolors.LinearSegmentedColormap.from_list("custom", [(0, "black"), (1, color)])
 
@@ -118,13 +118,17 @@ def wavelength_to_rgb(wavelength):
 def TheExample(kostil):
     global I
     labda_central = LABDA_CENTRAL.get() * nm
+
     delta_lambda = DELTA_LAMBDA.get() * nm
+    #cоздаеv массив длин волн, равномерно распределенных вокруг центральной длины волны.
     wavelengths = np.linspace(labda_central - delta_lambda / 2, labda_central + delta_lambda / 2, 10)
 
     I_total = np.zeros((N, N))
 
-    for labda in wavelengths:
-        I_total += calculate_intensity(labda)
+    for labda in wavelengths: #используем несколько длин волн, равномерно распределенных вокруг центральной длины волны в пределах ширины спектра.
+        I_total += calculate_intensity(labda) #сумма интенсивностей для каждой длины волны.
+
+    #Итоговая интенсивность получается путем усреднения интенсивностей для каждой из длин волн.
     I = I_total / len(wavelengths)
 
     radial_intensity_quasi = radial_intensity(I)

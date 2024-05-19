@@ -50,9 +50,21 @@ def calculate_intensity(labda):
         for j in range(1, N):
             Phi[i][j] = p2 * d[i][j] + math.pi
 
-    F = SubPhase(Phi, F)
-    F = BeamMix(F1, F)
-    I = Intensity(1, F)
+    F = SubPhase(Phi, F) # используется для вычитания фазы из волнового фронта.
+    #  она применяется для моделирования фазового сдвига, вызванного толщиной пленки,
+    # т.к. фаза световой волны изменяется при прохождении через среду с различной толщиной или показателем преломления
+    #Phi — это матрица фазовых сдвигов, определяемых толщиной пленки (d[i][j]).
+    #F — это волновое поле, для которого вычитается фазовый сдвиг Phi.
+
+    F = BeamMix(F1, F)  #используется для сложения двух волновых фронтов.
+    #  это необходимо для моделирования интерференции между двумя волновыми фронтами.
+    #F1 — исходное волновое поле.
+    #F — волновое поле после вычитания фазы.
+    #BeamMix(F1, F) суммирует эти два волновых поля, моделируя интерференцию между ними.
+
+
+
+    I = Intensity(F) #вычисляет интенсивность светового поля на основе амплитуды волнового фронта.
     return I
 
 
@@ -67,38 +79,38 @@ def radial_intensity(I):
 def get_colormap(labda):
     wavelength = labda / nm
     if wavelength < 380 or wavelength > 780:
-        raise ValueError("Wavelength out of visible range")
+        raise ValueError("Некорректная длинна волны")
     color = wavelength_to_rgb(wavelength)
     return mcolors.LinearSegmentedColormap.from_list("custom", [(0, "black"), (1, color)])
 
 
 def wavelength_to_rgb(wavelength):
-    gamma = 0.8
-    intensity_max = 255
-    factor = 0.0
-    R, G, B = 0, 0, 0
+    gamma = 0.8     #Корректирующий коэффициент для гамма-коррекции, улучшает восприятие цвета.
+    intensity_max = 255     #Максимальная интенсивность цвета в RGB (диапазон 0-255).
+    factor = 0.0    #Коэффициент, который будет использоваться для регулировки интенсивности.
+    R, G, B = 0, 0, 0 #Инициализация значений красного, зеленого и синего цветов в 0.
 
-    if 380 <= wavelength <= 440:
+    if 380 <= wavelength <= 440:        #Переход от фиолетового к синему.
         R = -(wavelength - 440) / (440 - 380)
         G = 0.0
         B = 1.0
-    elif 440 <= wavelength <= 490:
+    elif 440 <= wavelength <= 490:      #Переход от синего к голубому.
         R = 0.0
         G = (wavelength - 440) / (490 - 440)
         B = 1.0
-    elif 490 <= wavelength <= 510:
+    elif 490 <= wavelength <= 510:      #Переход от голубого к зеленому.
         R = 0.0
         G = 1.0
         B = -(wavelength - 510) / (510 - 490)
     elif 510 <= wavelength <= 580:
-        R = (wavelength - 510) / (580 - 510)
+        R = (wavelength - 510) / (580 - 510)    #Переход от зеленого к желтому.
         G = 1.0
         B = 0.0
-    elif 580 <= wavelength <= 645:
+    elif 580 <= wavelength <= 645:          #Переход от желтого к красному.
         R = 1.0
         G = -(wavelength - 645) / (645 - 580)
         B = 0.0
-    elif 645 <= wavelength <= 780:
+    elif 645 <= wavelength <= 780:  #Красный цвет.
         R = 1.0
         G = 0.0
         B = 0.0
